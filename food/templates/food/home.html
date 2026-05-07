@@ -1,0 +1,366 @@
+{% extends 'food/base.html' %}
+{% load static %}
+
+{% block title %}FoodExpress — Order Food Online{% endblock %}
+
+{% block content %}
+
+<!-- HERO SECTION -->
+<section style="background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); padding: 100px 0; position:relative; overflow:hidden;">
+    <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200') center/cover; opacity:0.15;"></div>
+    <div class="container text-center text-white position-relative">
+        <span class="badge bg-warning text-dark px-3 py-2 mb-3 fs-6">🚀 Fast Delivery in 30 mins</span>
+        <h1 class="display-3 fw-bold mb-3">Hungry? <span style="color:#ff6b35;">We Got You!</span> 🍔</h1>
+        <p class="lead mb-5 text-white-50">Order from 100+ restaurants — delivered hot & fresh to your door</p>
+
+        <!-- SEARCH BOX -->
+        <div class="d-flex justify-content-center position-relative">
+            <div style="max-width:650px; width:100%; position:relative;">
+                <form method="GET" action="{% url 'home' %}" id="searchForm">
+                    <div class="input-group input-group-lg shadow-lg" style="border-radius:50px; overflow:hidden;">
+                        <span class="input-group-text bg-white border-0 ps-4">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" name="q" id="searchInput"
+                               class="form-control border-0 py-3"
+                               placeholder="Search restaurants or food..."
+                               value="{{ query|default:'' }}"
+                               autocomplete="off">
+                        <button class="btn px-4 fw-bold border-0" type="submit"
+                                style="background:#ff6b35; color:white; border-radius:0 50px 50px 0;">
+                            Search
+                        </button>
+                    </div>
+                </form>
+                <!-- Live Search Dropdown -->
+                <div id="searchDropdown" class="bg-white shadow-lg rounded-3 text-start d-none"
+                     style="position:absolute; top:110%; left:0; right:0; z-index:999; max-height:350px; overflow-y:auto;">
+                </div>
+            </div>
+        </div>
+
+        <!-- STATS (Dynamic from database) -->
+        <div class="row justify-content-center mt-5 g-3">
+            <div class="col-auto">
+                <div class="bg-white bg-opacity-10 rounded-3 px-4 py-2 text-white">
+                    <strong>{{ total_restaurants|default:"100+" }}</strong> Restaurants
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="bg-white bg-opacity-10 rounded-3 px-4 py-2 text-white">
+                    <strong>{{ total_food_items|default:"500+" }}</strong> Food Items
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="bg-white bg-opacity-10 rounded-3 px-4 py-2 text-white">
+                    <strong>{{ avg_delivery_time|default:"30" }} min</strong> Avg Delivery
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CATEGORIES BAR -->
+<section class="bg-white py-3 shadow-sm sticky-top" style="top:56px; z-index:100;">
+    <div class="container">
+        <div class="d-flex gap-2 overflow-auto pb-1" style="scrollbar-width:none; -ms-overflow-style:none;">
+            <a href="{% url 'home' %}" class="btn btn-sm {% if not query %}btn-warning{% else %}btn-outline-secondary{% endif %} rounded-pill px-3 text-nowrap">🔥 All</a>
+            {% for category in categories %}
+            <a href="?category={{ category.slug }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 text-nowrap">
+                {{ category.icon }} {{ category.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- SEARCH RESULTS or RESTAURANTS -->
+<section class="py-5">
+    <div class="container">
+        {% if query %}
+        <h4 class="fw-bold mb-4">
+            🔍 Results for "<span style="color:#ff6b35;">{{ query }}</span>"
+            <small class="text-muted fs-6">({{ restaurants|length }} restaurant{{ restaurants|length|pluralize }} found)</small>
+        </h4>
+        {% else %}
+        <h4 class="fw-bold mb-4">🔥 Popular Restaurants</h4>
+        {% endif %}
+
+        <div class="row g-4">
+            {% for restaurant in restaurants %}
+            <div class="col-lg-4 col-md-6">
+                <div class="card h-100 border-0 shadow-sm restaurant-card" style="border-radius:16px; overflow:hidden; transition: transform 0.2s, box-shadow 0.2s;">
+                    <!-- Image -->
+                    <div style="position:relative;">
+                        {% if restaurant.image %}
+                        <img src="{{ restaurant.image.url }}" class="card-img-top" alt="{{ restaurant.name }}"
+                             style="height:210px; object-fit:cover;" loading="lazy">
+                        {% else %}
+                        <div class="d-flex align-items-center justify-content-center"
+                             style="height:210px; background: linear-gradient(135deg, #667eea, #764ba2);">
+                            <i class="fas fa-utensils fa-4x text-white opacity-75"></i>
+                        </div>
+                        {% endif %}
+
+                        <!-- Badges on image -->
+                        <div style="position:absolute; top:12px; left:12px;">
+                            <span class="badge {% if restaurant.is_open %}bg-success{% else %}bg-danger{% endif %} px-2 py-1">
+                                {% if restaurant.is_open %}● Open{% else %}● Closed{% endif %}
+                            </span>
+                        </div>
+                        <div style="position:absolute; top:12px; right:12px;">
+                            <span class="badge bg-dark bg-opacity-75 px-2 py-1">
+                                <i class="fas fa-clock"></i> {{ restaurant.delivery_time|default:"30-40" }} min
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="card-body px-4 py-3">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h5 class="fw-bold mb-0">{{ restaurant.name }}</h5>
+                            <!-- Dynamic star rating -->
+                            <span class="text-warning small">
+                                {% with rating=restaurant.average_rating|default:"4.0"|floatformat:0 %}
+                                    {% for i in "12345"|make_list %}
+                                        {% if forloop.counter <= rating|add:"0" %}★{% else %}☆{% endif %}
+                                    {% endfor %}
+                                {% endwith %}
+                                <span class="text-muted small">({{ restaurant.rating_count|default:"4.0" }})</span>
+                            </span>
+                        </div>
+                        <p class="text-muted small mb-2">{{ restaurant.description|truncatewords:12|default:"Delicious food served fresh" }}</p>
+
+                        <!-- Dynamic price range & location -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-success small fw-bold">
+                                <i class="fas fa-tag"></i> {{ restaurant.min_price|default:"200" }} — {{ restaurant.max_price|default:"2000" }} Rs.
+                            </span>
+                            <span class="text-muted small">
+                                <i class="fas fa-map-marker-alt text-danger"></i>
+                                {{ restaurant.address|truncatewords:3|default:"Multiple locations" }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="card-footer border-0 bg-transparent px-4 pb-4 pt-0">
+                        <a href="{% url 'restaurant_detail' restaurant.pk %}"
+                           class="btn w-100 fw-bold text-white"
+                           style="background:#ff6b35; border-radius:10px;">
+                            View Full Menu <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <div style="font-size:5rem;">🍽️</div>
+                <h4 class="text-muted mt-3">No restaurants found for "{{ query }}"</h4>
+                <p class="text-muted">Try searching for burger, pizza, chicken, or browse all restaurants</p>
+                <a href="{% url 'home' %}" class="btn btn-warning mt-2 px-4">Browse All Restaurants</a>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Page navigation" class="mt-5">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}">&laquo; First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Previous</a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">Last &raquo;</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</section>
+
+<!-- HOW IT WORKS SECTION -->
+{% if not query %}
+<section class="py-5" style="background:#f8f9fa;">
+    <div class="container text-center">
+        <h3 class="fw-bold mb-5">How It Works 🚀</h3>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="p-4">
+                    <div class="display-4 mb-3">🔍</div>
+                    <h5 class="fw-bold">1. Browse</h5>
+                    <p class="text-muted">Search from 100+ restaurants and thousands of menu items</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4">
+                    <div class="display-4 mb-3">🛒</div>
+                    <h5 class="fw-bold">2. Order</h5>
+                    <p class="text-muted">Add items to cart and place your order in seconds</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4">
+                    <div class="display-4 mb-3">🏍️</div>
+                    <h5 class="fw-bold">3. Enjoy</h5>
+                    <p class="text-muted">Get your food delivered hot & fresh to your door</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .restaurant-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .restaurant-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.15) !important;
+    }
+    .btn-warning {
+        background-color: #ff6b35;
+        border-color: #ff6b35;
+        color: white;
+    }
+    .btn-warning:hover {
+        background-color: #e55a2b;
+        border-color: #e55a2b;
+        color: white;
+    }
+    /* Hide scrollbar for categories */
+    .d-flex.overflow-auto {
+        scrollbar-width: none;
+    }
+    .d-flex.overflow-auto::-webkit-scrollbar {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Live Search Dropdown with debouncing
+const searchInput = document.getElementById('searchInput');
+const dropdown = document.getElementById('searchDropdown');
+let debounceTimer;
+
+searchInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    const query = this.value.trim();
+    
+    if (query.length < 2) {
+        dropdown.classList.add('d-none');
+        return;
+    }
+    
+    debounceTimer = setTimeout(async () => {
+        try {
+            const response = await fetch(`/search-suggestions/?q=${encodeURIComponent(query)}`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            
+            if (!data.results || data.results.length === 0) {
+                dropdown.classList.add('d-none');
+                return;
+            }
+            
+            dropdown.innerHTML = '';
+            
+            data.results.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'px-4 py-3 border-bottom';
+                div.style.cursor = 'pointer';
+                div.innerHTML = `
+                    <div class="d-flex align-items-center gap-3">
+                        <span style="font-size:1.5rem;">${item.type === 'restaurant' ? '🍽️' : (item.type === 'food' ? '🍔' : '📦')}</span>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">${escapeHtml(item.name)}</div>
+                            <small class="text-muted">${escapeHtml(item.subtitle)}</small>
+                        </div>
+                        <span class="ms-auto badge bg-light text-dark text-capitalize">${item.type}</span>
+                    </div>`;
+                
+                div.addEventListener('click', () => {
+                    if (item.url) window.location.href = item.url;
+                });
+                div.addEventListener('mouseover', () => div.style.backgroundColor = '#fff5f0');
+                div.addEventListener('mouseout', () => div.style.backgroundColor = '');
+                dropdown.appendChild(div);
+            });
+            
+            dropdown.classList.remove('d-none');
+        } catch (error) {
+            console.error('Search error:', error);
+            dropdown.classList.add('d-none');
+        }
+    }, 300); // Debounce delay
+});
+
+// Escape HTML to prevent XSS
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function (e) {
+    if (searchInput && !searchInput.contains(e.target)) {
+        dropdown.classList.add('d-none');
+    }
+});
+
+// Prevent form resubmission on enter key in search
+if (searchInput) {
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('searchForm')?.submit();
+        }
+    });
+}
+
+// Add loading state for images
+document.addEventListener('DOMContentLoaded', function() {
+    const images = document.querySelectorAll('img[loading="lazy"]');
+    images.forEach(img => {
+        img.addEventListener('error', function() {
+            this.style.display = 'none';
+            const parent = this.parentElement;
+            if (parent) {
+                parent.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-utensils fa-4x text-white opacity-75';
+                icon.style.position = 'absolute';
+                icon.style.top = '50%';
+                icon.style.left = '50%';
+                icon.style.transform = 'translate(-50%, -50%)';
+                parent.appendChild(icon);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

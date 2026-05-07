@@ -1,0 +1,34 @@
+{% extends 'food/base.html' %}
+{% block title %}Checkout{% endblock %}
+{% block content %}
+<div class="container py-5" style="max-width:600px;">
+    <h2 class="fw-bold mb-4">📦 Checkout</h2>
+    <div class="card mb-4">
+        <div class="card-body">
+            {% for item in cart_items %}
+            <div class="d-flex justify-content-between mb-2">
+                <span>{{ item.food_item.name }} x{{ item.quantity }}</span>
+                <span>Rs. {{ item.total_price }}</span>
+            </div>
+            {% endfor %}
+            <hr>
+            <div class="d-flex justify-content-between fw-bold">
+                <span>Total</span><span class="text-success">Rs. {{ total }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">Delivery Address</h5>
+            <form method="POST">
+                {% csrf_token %}
+                <textarea name="address" class="form-control mb-3" rows="3"
+                          placeholder="Enter your full delivery address..." required></textarea>
+                <button type="submit" class="btn btn-primary w-100 btn-lg">
+                    Place Order 🎉
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

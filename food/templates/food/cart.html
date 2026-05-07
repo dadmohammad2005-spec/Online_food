@@ -1,0 +1,68 @@
+{% extends 'food/base.html' %}
+{% block title %}My Cart{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-4">🛒 My Cart</h2>
+    {% if cart_items %}
+    <div class="row">
+        <div class="col-md-8">
+            {% for item in cart_items %}
+            <div class="card mb-3">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-3">
+                        {% if item.food_item.image %}
+                        <img src="{{ item.food_item.image.url }}" width="70" height="70" class="rounded" style="object-fit:cover;">
+                        {% endif %}
+                        <div>
+                            <h6 class="fw-bold mb-0">{{ item.food_item.name }}</h6>
+                            <small class="text-muted">Rs. {{ item.food_item.price }} each</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <form method="POST" action="{% url 'update_cart' item.id %}" class="d-flex align-items-center gap-2">
+                            {% csrf_token %}
+                            <input type="number" name="quantity" value="{{ item.quantity }}"
+                                   min="0" max="20" class="form-control" style="width:70px;">
+                            <button class="btn btn-sm btn-outline-primary" type="submit">Update</button>
+                        </form>
+                        <span class="fw-bold text-success">Rs. {{ item.total_price }}</span>
+                        <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="fw-bold">Order Summary</h5>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span><span>Rs. {{ total }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Delivery Fee</span><span class="text-success">Free</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold fs-5">
+                        <span>Total</span><span class="text-success">Rs. {{ total }}</span>
+                    </div>
+                    <a href="{% url 'checkout' %}" class="btn btn-primary w-100 mt-3 btn-lg">
+                        Proceed to Checkout <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">Your cart is empty</h4>
+        <a href="{% url 'home' %}" class="btn btn-primary mt-3">Browse Restaurants</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

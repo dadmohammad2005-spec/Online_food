@@ -1,0 +1,118 @@
+{% extends 'food/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<!-- SECTION 1: THE STATS BAR (From your image) -->
+    <div class="overlay" style="background: rgba(0,0,0,0.6); position: absolute; top:0; left:0; width:100%; height:100%;"></div>
+    <div class="container" style="position: relative; z-index: 2; color: white; text-align: center;">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <h3>100+</h3>
+                    <p>Restaurants</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <h3>500+</h3>
+                    <p>Food Items</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <h3>30 min</h3>
+                    <p>Avg Delivery</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SECTION 2: SEARCH AND CATEGORY FILTERS -->
+<section class="filter-section py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <!-- Search Bar -->
+                <form method="GET" action="{% url 'store' %}" class="mb-4">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control form-control-lg" placeholder="Search for pizza, burger, pasta..." value="{{ search_query }}">
+                        <button class="btn btn-warning" type="submit">Search</button>
+                    </div>
+                </form>
+
+                <!-- Horizontal Scrollable Categories (The Image UI) -->
+                <div class="category-scroll-container d-flex overflow-auto pb-3" style="gap: 10px; -webkit-overflow-scrolling: touch;">
+                    
+                    <!-- ALL Button -->
+                    <a href="{% url 'store' %}" class="btn btn-outline-dark rounded-pill px-4 py-2 {% if not current_category and not search_query %}active-cat{% endif %}" style="white-space: nowrap; border: 1px solid #ddd;">
+                        🔥 All
+                    </a>
+
+                    <!-- Dynamic Category Buttons -->
+                    {% for category in categories %}
+                    <a href="{% url 'store_by_category' category.id %}" class="btn btn-outline-dark rounded-pill px-4 py-2 {% if current_category == category.id %}active-cat{% endif %}" style="white-space: nowrap; border: 1px solid #ddd;">
+                        {{ category.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SECTION 3: FOOD GRID -->
+<section class="food-grid py-5">
+    <div class="container">
+        <div class="row">
+            {% if fooditems %}
+                {% for food in fooditems %}
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        {% if food.image %}
+                        <img src="{{ food.image.url }}" class="card-img-top" alt="{{ food.name }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height:200px;">
+                            No image
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ food.name }}</h5>
+                            <p class="card-text text-muted small">{{ food.description|truncatewords:10 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h5 mb-0 text-warning">Rs. {{ food.get_min_price }}</span>
+                                <a href="#" class="btn btn-sm btn-dark">Add +</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <h3>No food items found matching your search.</h3>
+                    <a href="{% url 'store' %}" class="btn btn-primary mt-3">Clear Filters</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- CSS for the Active State (Yellow Button) -->
+<style>
+    .active-cat {
+        background-color: #ffc107 !important; /* Yellow color from your image */
+        color: #000 !important;
+        border-color: #ffc107 !important;
+        font-weight: bold;
+    }
+    .category-scroll-container::-webkit-scrollbar {
+        height: 6px;
+    }
+    .category-scroll-container::-webkit-scrollbar-thumb {
+        background-color: #ccc;
+        border-radius: 10px;
+    }
+</style>
+
+{% endblock %}

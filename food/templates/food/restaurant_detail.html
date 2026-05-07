@@ -1,0 +1,211 @@
+{% extends 'food/base.html' %}
+{% block title %}{{ restaurant.name }} — Menu{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<div style="position:relative; height:320px; overflow:hidden;">
+    {% if restaurant.image %}
+    <img src="{{ restaurant.image.url }}" style="width:100%; height:100%; object-fit:cover;">
+    {% else %}
+    <div style="height:320px; background:linear-gradient(135deg,#667eea,#764ba2);"></div>
+    {% endif %}
+    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.85),rgba(0,0,0,0.2));"></div>
+    <div class="container position-relative h-100 d-flex align-items-end pb-4">
+        <div class="text-white">
+            <span class="badge {% if restaurant.is_open %}bg-success{% else %}bg-danger{% endif %} mb-2">
+                {% if restaurant.is_open %}● Open Now{% else %}● Closed{% endif %}
+            </span>
+            <h1 class="fw-bold display-5 mb-1">{{ restaurant.name }}</h1>
+            <p class="mb-2 text-white-50">{{ restaurant.description }}</p>
+            <div class="d-flex gap-4 flex-wrap">
+                <span><i class="fas fa-clock text-warning"></i> {{ restaurant.delivery_time }}</span>
+                <span><i class="fas fa-map-marker-alt text-danger"></i> {{ restaurant.address }}</span>
+                <span><i class="fas fa-motorcycle text-info"></i> Delivery: Rs. {{ restaurant.delivery_charge }}</span>
+                <span><i class="fas fa-star text-warning"></i> 4.2 Rating</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CATEGORY NAV -->
+<div class="bg-white shadow-sm sticky-top" style="top:56px; z-index:99;">
+    <div class="container">
+        <div class="d-flex gap-3 overflow-auto py-2" style="scrollbar-width:none;">
+            {% for category in categories %}
+            <a href="#cat-{{ category.id }}"
+               class="btn btn-sm btn-outline-secondary rounded-pill px-3 text-nowrap">
+                {{ category.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row g-4">
+
+        <!-- MENU -->
+        <div class="col-lg-8">
+            {% for category in categories %}
+            <div id="cat-{{ category.id }}" class="mb-5">
+                <h4 class="fw-bold mb-4 pb-2 border-bottom" style="color:#ff6b35;">
+                    🍽️ {{ category.name }}
+                </h4>
+
+                {% for item in category.items.all %}
+                {% if item.is_available %}
+                <div class="card border-0 shadow-sm mb-3" style="border-radius:14px;">
+                    <div class="row g-0 align-items-stretch">
+                        <div class="col-8 col-md-9">
+                            <div class="p-4">
+                                <!-- Name -->
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span style="width:14px;height:14px;border:2px solid green;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;">
+                                        <span style="width:7px;height:7px;background:green;border-radius:50%;display:block;"></span>
+                                    </span>
+                                    <h6 class="fw-bold mb-0">{{ item.name }}</h6>
+                                </div>
+
+                                <!-- Description -->
+                                <p class="text-muted small mb-3">{{ item.description|truncatewords:12 }}</p>
+
+                                <!-- SIZE PRICES TABLE -->
+                                {% if item.has_sizes %}
+                                <div class="mb-3">
+                                    <small class="text-muted fw-bold d-block mb-2">Available Sizes & Prices:</small>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% if item.price_single %}
+                                        <span class="badge border text-dark px-3 py-2" style="background:#fff8f0; border-color:#ff6b35 !important;">
+                                            Single<br><strong style="color:#ff6b35;">Rs. {{ item.price_single }}</strong>
+                                        </span>
+                                        {% endif %}
+                                        {% if item.price_small %}
+                                        <span class="badge border text-dark px-3 py-2" style="background:#fff8f0; border-color:#ff6b35 !important;">
+                                            Small<br><strong style="color:#ff6b35;">Rs. {{ item.price_small }}</strong>
+                                        </span>
+                                        {% endif %}
+                                        {% if item.price_medium %}
+                                        <span class="badge border text-dark px-3 py-2" style="background:#fff8f0; border-color:#ff6b35 !important;">
+                                            Medium<br><strong style="color:#ff6b35;">Rs. {{ item.price_medium }}</strong>
+                                        </span>
+                                        {% endif %}
+                                        {% if item.price_large %}
+                                        <span class="badge border text-dark px-3 py-2" style="background:#fff8f0; border-color:#ff6b35 !important;">
+                                            Large<br><strong style="color:#ff6b35;">Rs. {{ item.price_large }}</strong>
+                                        </span>
+                                        {% endif %}
+                                        {% if item.price_family %}
+                                        <span class="badge border text-dark px-3 py-2" style="background:#fff8f0; border-color:#ff6b35 !important;">
+                                            Family<br><strong style="color:#ff6b35;">Rs. {{ item.price_family }}</strong>
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="mb-3">
+                                    <span class="fw-bold fs-5" style="color:#ff6b35;">
+                                        Rs. {{ item.price_single|default:item.get_min_price }}
+                                    </span>
+                                </div>
+                                {% endif %}
+
+                                <!-- ADD TO CART FORM -->
+                                {% if user.is_authenticated %}
+                                <form method="POST" action="{% url 'add_to_cart' item.id %}" class="d-flex align-items-center gap-2 flex-wrap">
+                                    {% csrf_token %}
+                                    {% if item.has_sizes %}
+                                    <select name="size" class="form-select form-select-sm" style="width:auto; border-color:#ff6b35;">
+                                        {% if item.price_single %}<option value="single">Single — Rs. {{ item.price_single }}</option>{% endif %}
+                                        {% if item.price_small %}<option value="small">Small — Rs. {{ item.price_small }}</option>{% endif %}
+                                        {% if item.price_medium %}<option value="medium" selected>Medium — Rs. {{ item.price_medium }}</option>{% endif %}
+                                        {% if item.price_large %}<option value="large">Large — Rs. {{ item.price_large }}</option>{% endif %}
+                                        {% if item.price_family %}<option value="family">Family — Rs. {{ item.price_family }}</option>{% endif %}
+                                    </select>
+                                    {% else %}
+                                    <input type="hidden" name="size" value="single">
+                                    {% endif %}
+                                    <button type="submit" class="btn btn-sm fw-bold text-white px-3"
+                                            style="background:#ff6b35; border-radius:8px;">
+                                        <i class="fas fa-plus"></i> Add to Cart
+                                    </button>
+                                </form>
+                                {% else %}
+                                <a href="{% url 'login' %}" class="btn btn-sm btn-outline-secondary">
+                                    Login to Order
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- FOOD IMAGE -->
+                        <div class="col-4 col-md-3">
+                            {% if item.image %}
+                            <img src="{{ item.image.url }}"
+                                 style="height:100%; min-height:150px; width:100%; object-fit:cover; border-radius:0 14px 14px 0;">
+                            {% else %}
+                            <div class="d-flex align-items-center justify-content-center h-100"
+                                 style="min-height:150px; background:linear-gradient(135deg,#f093fb,#f5576c); border-radius:0 14px 14px 0;">
+                                <i class="fas fa-hamburger fa-2x text-white"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% empty %}
+                <p class="text-muted">No items available in this category.</p>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- CART SIDEBAR -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow sticky-top" style="top:120px; border-radius:16px;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">🛒 Your Cart</h5>
+                    {% if user.is_authenticated %}
+                        {% with cart_items=user.cart_set.all %}
+                        {% if cart_items %}
+                            {% for ci in cart_items %}
+                            <div class="d-flex justify-content-between align-items-start mb-2 pb-2 border-bottom">
+                                <div>
+                                    <small class="fw-bold d-block">{{ ci.food_item.name }}</small>
+                                    <small class="text-muted">{{ ci.selected_size|capfirst }} × {{ ci.quantity }}</small>
+                                </div>
+                                <small class="fw-bold" style="color:#ff6b35;">Rs. {{ ci.total_price }}</small>
+                            </div>
+                            {% endfor %}
+                            <div class="d-flex justify-content-between fw-bold mt-3 mb-1">
+                                <span>Subtotal</span>
+                                <span>Rs. {% for ci in cart_items %}{{ ci.total_price }}{% endfor %}</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted small mb-3">
+                                <span>Delivery</span>
+                                <span>Rs. {{ restaurant.delivery_charge }}</span>
+                            </div>
+                            <a href="{% url 'cart' %}" class="btn w-100 fw-bold text-white"
+                               style="background:#ff6b35; border-radius:10px;">
+                                View Cart <i class="fas fa-arrow-right"></i>
+                            </a>
+                        {% else %}
+                            <div class="text-center py-4 text-muted">
+                                <div style="font-size:3rem;">🛒</div>
+                                <p class="mt-2 small">Cart is empty.<br>Add items from the menu!</p>
+                            </div>
+                        {% endif %}
+                        {% endwith %}
+                    {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <div style="font-size:3rem;">👤</div>
+                            <p class="mt-2 small">Please <a href="{% url 'login' %}">login</a> to order</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
